@@ -2,6 +2,7 @@ FROM node:24-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+
 RUN corepack enable
 
 FROM base AS builder
@@ -9,10 +10,26 @@ FROM base AS builder
 WORKDIR /build
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 make g++ git \
+  && apt-get install -y --no-install-recommends \
+     ca-certificates \
+     git \
+     python3 \
+     make \
+     g++ \
+  && update-ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-RUN git clone --depth 1 --branch v2.32.1 https://github.com/Viren070/AIOStreams.git .
+RUN git clone --depth 1 --branch v2.32.1 \
+    https://github.com/Viren070/AIOStreams.git .
+
+COPY package*.json ./
+COPY packages/server/package*.json ./packages/server/
+COPY packages/core/package*.json ./packages/core/
+COPY packages/frontend/package*.json ./packages/frontend/
+COPY packages/seanime-extensions/package*.json ./packages/seanime-extensions/
+COPY pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY pnpm-lock.yaml ./pnpm-lock.yaml
+COPY patches ./patches
 
 RUN pnpm install --frozen-lockfile
 
@@ -45,7 +62,6 @@ COPY --from=builder /build/packages/server/dist ./packages/server/dist
 COPY --from=builder /build/packages/server/src/static ./packages/server/dist/static
 COPY --from=builder /build/packages/seanime-extensions/dist ./packages/seanime-extensions/dist
 
-COPY --from=builder /build/packages/seanime-extensions/dist ./packages/seanime-extensions/dist
 COPY --from=builder /build/resources ./resources
 COPY --from=builder /build/scripts ./scripts
 
@@ -64,15 +80,4 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY --from=runtime /runtime /app
-
-COPY aiostreams.dump /app/aiostreams.dump
-COPY entrypoint.sh /entrypoint.sh
-
-RUN chmod +x /entrypoint.sh
-
-ENV PORT=7860
-
-EXPOSE 7860
-
-ENTRYPOINT ["/entrypoint.sh"]
+COPY
