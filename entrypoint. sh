@@ -1,0 +1,38 @@
+#!/bin/bash
+set -e
+
+PGDATA=/data/postgres
+DBNAME=neondb
+DBUSER=neondb_owner
+DBPASS=localpass
+
+mkdir -p /data
+chown -R postgres:postgres /data
+
+if [ ! -f "$PGDATA/PG_VERSION" ]; then
+    echo "Initializing PostgreSQL..."
+    su postgres -c "initdb -D '$PGDATA'"
+fi
+
+echo "Starting PostgreSQL..."
+su postgres -c "pg_ctl -D '$PGDATA' -o '-p 5432' -w start"
+
+echo "Creating database/user..."
+
+su postgres -c "psql -p 5432 -c \"CREATE USER $DBUSER WITH PASSWORD '$DBPASS';\"" || true
+
+su postgres -c "createdb -p 5432 -O $DBUSER $DBNAME" || true
+
+TABLES=$(su postgres -c \
+    "psql -p 5432 -d $DBNAME -tAc \"SELECT count(*) FROM information_schema.tables WHERE table_schema='public'\"")
+
+if [ "$TABLES" = "0" ]; then
+    echo "Restoring AIOStreams database..."
+    su postgres -c \
+        "pg_restore -p 5432 -U $DBUSER -d $DBNAME --no-owner --no-privileges /app/aiostreams.dump"
+fi
+
+export DATABASE_URI="postgres://$DBUSER:$DBPASS@127.0.0.1:5432/$DBNAME"
+
+echo "Starting AIOStreams..."
+exec node /app/packages/backend/dist/index.js
