@@ -22,15 +22,6 @@ RUN apt-get update \
 RUN git clone --depth 1 --branch v2.32.1 \
     https://github.com/Viren070/AIOStreams.git .
 
-COPY package*.json ./
-COPY packages/server/package*.json ./packages/server/
-COPY packages/core/package*.json ./packages/core/
-COPY packages/frontend/package*.json ./packages/frontend/
-COPY packages/seanime-extensions/package*.json ./packages/seanime-extensions/
-COPY pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY pnpm-lock.yaml ./pnpm-lock.yaml
-COPY patches ./patches
-
 RUN pnpm install --frozen-lockfile
 
 RUN pnpm run build
@@ -80,4 +71,15 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY
+COPY --from=runtime /runtime /app
+
+COPY aiostreams.dump /app/aiostreams.dump
+COPY entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+
+ENV PORT=7860
+
+EXPOSE 7860
+
+ENTRYPOINT ["/entrypoint.sh"]
