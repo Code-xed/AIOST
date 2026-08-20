@@ -1,4 +1,4 @@
-FROM ghcr.io/viren070/aiostreams:lastest
+FROM ghcr.io/viren070/aiostreams:latest
 
 USER root
 
