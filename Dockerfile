@@ -2,9 +2,7 @@ FROM ghcr.io/viren070/aiostreams:latest
 
 USER root
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends postgresql postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache postgresql postgresql-client
 
 COPY aiostreams.dump /app/aiostreams.dump
 COPY entrypoint.sh /entrypoint.sh
